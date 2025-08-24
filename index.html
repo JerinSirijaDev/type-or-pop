@@ -50,6 +50,7 @@ h1 { margin: 0; padding: 0; }
   min-width:280px;
   aspect-ratio: 3/2;
   box-sizing:border-box;
+  padding-bottom:40px; /* Add this line for extra space at bottom */
 }
 canvas{
   width:100%;
@@ -98,6 +99,7 @@ footer{
     min-width: 180px;
     max-width: 100vw;
     max-height: 80vh;
+    padding-bottom: 32px; /* Add this line for mobile */
   }
   #topbar {
     flex-direction:column;
@@ -502,7 +504,7 @@ const DPR=window.devicePixelRatio||1;canvas.width=900*DPR;canvas.height=600*DPR;
 
 // Game state
 let raf=null,started=false,running=false,score=0,wave=0,maxHealth=10;
-let player={x:450,y:540,r:28,health:maxHealth,popped:false,popProgress:0};
+let player={x:450,y:520,r:28,health:maxHealth,popped:false,popProgress:0};
 let enemies=[];
 let bullets=[]; // both player and enemy bullets
 let particles=[];
@@ -561,7 +563,7 @@ function resetGame(){
   wave=0;
   nextId=1;
   player.x=450;
-  player.y=540;
+  player.y=520; // was 540, move up for visibility
   player.r=28;
   player.health=maxHealth;
   player.popped=false;
@@ -586,7 +588,7 @@ function startGame(){
   wave=0;
   nextId=1;
   player.x=450;
-  player.y=540;
+  player.y=520; // was 540, move up for visibility
   player.r=28;
   player.health=maxHealth;
   player.popped=false;
