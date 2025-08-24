@@ -39,6 +39,12 @@ footer{margin-top:12px;color:var(--muted);font-size:13px}
 </div>
 <div id="container">
   <div id="overlay">Click to start the game</div>
+  <div id="highScoreModal" style="display:none; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); background:rgba(2,6,8,0.92); padding:22px 28px; border-radius:14px; font-size:18px; box-shadow:0 6px 30px rgba(0,0,0,0.6); z-index:10; flex-direction:column; gap:10px; align-items:center; text-align:center;">
+    <div style="color:#7ee787; font-weight:700; font-size:22px; margin-bottom:8px;">New High Score!</div>
+    <div style="color:#e6eef2; margin-bottom:10px;">Enter your name:</div>
+    <input id="highScoreInput" type="text" maxlength="18" style="padding:6px 12px; border-radius:6px; border:none; font-size:16px; background:#071217; color:#e6eef2; outline:none; margin-bottom:12px; width:180px;" />
+    <button id="highScoreSubmit" style="background:var(--accent); color:#000; border:none; padding:6px 18px; border-radius:6px; font-size:16px; cursor:pointer; font-family:inherit; font-weight:700;">Submit</button>
+  </div>
   <canvas id="c" width="900" height="600" tabindex="0"></canvas>
 </div>
 <footer>Type the word above each enemy to shoot it down. Wrong letter → enemy shoots back.</footer>
@@ -672,13 +678,33 @@ function handleKey(ev){if(!running) return; const k=(ev.key||'').toLowerCase(); 
 
 function checkHighScore(){ 
   if(score>highScore){ 
-    const name=prompt('New High Score! Enter your name:',''); 
-    highScore=score; 
-    highPlayer=name||'Unknown'; 
-    gameData.highScore=highScore; 
-    gameData.highPlayer=highPlayer; 
-    highScoreEl.textContent=highScore; 
-    highPlayerEl.textContent=highPlayer; 
+    // Show custom modal
+    const modal = document.getElementById('highScoreModal');
+    const input = document.getElementById('highScoreInput');
+    const submit = document.getElementById('highScoreSubmit');
+    modal.style.display = 'flex';
+    input.value = '';
+    input.focus();
+
+    function submitName() {
+      let name = input.value.trim();
+      if (!name) name = 'Unknown';
+      highScore = score; 
+      highPlayer = name; 
+      gameData.highScore = highScore; 
+      gameData.highPlayer = highPlayer; 
+      highScoreEl.textContent = highScore; 
+      highPlayerEl.textContent = highPlayer; 
+      modal.style.display = 'none';
+      // Remove listeners to avoid duplicates
+      submit.removeEventListener('click', submitName);
+      input.removeEventListener('keydown', keyHandler);
+    }
+    function keyHandler(e) {
+      if (e.key === 'Enter') submitName();
+    }
+    submit.addEventListener('click', submitName);
+    input.addEventListener('keydown', keyHandler);
   }
 }
 
