@@ -3,167 +3,21 @@
 <head>
 <meta charset="utf-8" />
 <title>Type or Pop Game</title>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
-:root{
-  --bg:#0b0f14;
-  --panel:#071217;
-  --muted:#9aa6b2;
-  --accent:#7ee787;
-  --danger:#ff6b6b;
-}
+:root{--bg:#0b0f14;--panel:#071217;--muted:#9aa6b2;--accent:#7ee787;--danger:#ff6b6b}
 *{box-sizing:border-box}
-body{
-  margin:0;
-  background:var(--bg);
-  color:#e6eef2;
-  font-family:ui-monospace,Menlo,monospace;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  min-height:100vh;
-  width:100vw;
-  overflow:hidden;
-}
-h1 { margin: 0; padding: 0; }
-#topbar{
-  width:100%;
-  max-width:900px;
-  padding:12px 18px;
-  display:flex;
-  justify-content:flex-start;
-  gap:12px;
-  align-items:center;
-  margin-bottom:8px;
-  box-sizing:border-box;
-}
+body{margin:0;background:var(--bg);color:#e6eef2;font-family:ui-monospace,Menlo,monospace;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh}
+#topbar{width:900px;padding:12px 18px;display:flex;justify-content:flex-start;gap:12px;align-items:center;margin-bottom:8px}
 #topbar .label{font-size:16px;color:var(--muted)}
 #topbar .value{font-weight:700;margin-left:6px}
-#container{
-  position:relative;
-  width:100vw;
-  height:100vh;
-  max-width:100vw;
-  max-height:100vh;
-  min-width:0;
-  min-height:0;
-  box-sizing:border-box;
-  padding-bottom:0;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  align-items:center;
-}
-canvas{
-  width:100%;
-  height:100%;
-  display:block;
-  border-radius:10px;
-  background:linear-gradient(180deg,#081018,#06101a);
-  box-shadow:0 6px 30px rgba(0,0,0,0.6);
-  outline:none;
-  position:absolute;
-  left:0; top:0;
-}
-#overlay{
-  position:absolute;
-  left:50%;
-  top:50%;
-  transform:translate(-50%,-50%);
-  background:rgba(2,6,8,0.85);
-  padding:18px 22px;
-  border-radius:12px;
-  font-size:18px;
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-  align-items:center;
-  text-align:center;
-  cursor:pointer;
-  max-width:90vw;
-  z-index:2;
-}
-#mobileInputBox {
-  position: absolute;
-  left: 50%;
-  bottom: 18px;
-  transform: translateX(-50%);
-  z-index: 3;
-  background: #071217;
-  border: 2px solid #7ee787;
-  border-radius: 8px;
-  padding: 8px 14px;
-  font-size: 18px;
-  color: #e6eef2;
-  width: 70vw;
-  max-width: 340px;
-  outline: none;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.18);
-  text-align: center;
-  font-family: inherit;
-  display: none;
-}
-footer{
-  margin-top:12px;
-  color:var(--muted);
-  font-size:13px;
-  text-align:center;
-  max-width:96vw;
-}
-@keyframes popEffect {
-  0%   { transform: scale(1); color: #7ee787; }
-  30%  { transform: scale(1.5); color: #ff6b6b; }
-  60%  { transform: scale(0.8); color: #7ee787; }
-  100% { transform: scale(1); color: #7ee787; }
-}
-@media (max-width: 700px) {
-  #container {
-    width: 100vw;
-    height: 100vh;
-    max-width: 100vw;
-    max-height: 100vh;
-    min-width: 0;
-    min-height: 0;
-    padding-bottom: 0;
-  }
-  #topbar {
-    flex-direction:column;
-    align-items:flex-start;
-    gap:6px;
-    padding:8px 6px;
-    font-size:15px;
-    width:100vw;
-    max-width:100vw;
-  }
-  h1 {
-    font-size:2rem;
-    letter-spacing:1px;
-  }
-  #overlay {
-    font-size:16px;
-    padding:12px 8px;
-    max-width:98vw;
-  }
-  footer {
-    font-size:12px;
-    padding:0 4px;
-  }
-  #mobileInputBox {
-    font-size: 17px;
-    padding: 7px 10px;
-    width: 90vw;
-    max-width: 98vw;
-    bottom: 10px;
-  }
-}
+#container{position:relative;width:900px;height:600px}
+canvas{width:100%;height:100%;display:block;border-radius:10px;background:linear-gradient(180deg,#081018,#06101a);box-shadow:0 6px 30px rgba(0,0,0,0.6);outline:none}
+#overlay{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(2,6,8,0.85);padding:18px 22px;border-radius:12px;font-size:18px;display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center;cursor:pointer}
+footer{margin-top:12px;color:var(--muted);font-size:13px}
 </style>
 </head>
 <body>
-<h1 id="gameTitle" style="font-family:inherit;font-size:2.6rem;font-weight:800;color:#7ee787;margin-bottom:2px;letter-spacing:2px;text-align:center;">
-  <span id="typeText"></span>
-  <span id="popText" style="display:inline-block;"></span>
-</h1>
 <div id="topbar">
   <div><span class="label">High Score</span> <span class="value" id="highScore">0</span></div>
   <div style="margin-left:8px"><span class="label">Player</span> <span class="value" id="highPlayer">None</span></div>
@@ -174,14 +28,7 @@ footer{
 </div>
 <div id="container">
   <div id="overlay">Click to start the game</div>
-  <div id="highScoreModal" style="display:none; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); background:rgba(2,6,8,0.92); padding:22px 28px; border-radius:14px; font-size:18px; box-shadow:0 6px 30px rgba(0,0,0,0.6); z-index:10; flex-direction:column; gap:10px; align-items:center; text-align:center;">
-    <div style="color:#7ee787; font-weight:700; font-size:22px; margin-bottom:8px;">New High Score!</div>
-    <div style="color:#e6eef2; margin-bottom:10px;">Enter your name:</div>
-    <input id="highScoreInput" type="text" maxlength="18" style="padding:6px 12px; border-radius:6px; border:none; font-size:16px; background:#071217; color:#e6eef2; outline:none; margin-bottom:12px; width:180px;" />
-    <button id="highScoreSubmit" style="background:var(--accent); color:#000; border:none; padding:6px 18px; border-radius:6px; font-size:16px; cursor:pointer; font-family:inherit; font-weight:700;">Submit</button>
-  </div>
   <canvas id="c" width="900" height="600" tabindex="0"></canvas>
-  <input id="mobileInputBox" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" maxlength="1" />
 </div>
 <footer>Type the word above each enemy to shoot it down. Wrong letter → enemy shoots back.</footer>
 <script>
@@ -191,170 +38,6 @@ const ctx=canvas.getContext('2d');
 const overlay=document.getElementById('overlay');
 const highScoreEl=document.getElementById('highScore');
 const highPlayerEl=document.getElementById('highPlayer');
-const mobileInputBox = document.getElementById('mobileInputBox');
-
-// Responsive canvas logic
-let baseWidth = 900, baseHeight = 600;
-function resizeCanvas() {
-  // Use parent container size
-  const container = document.getElementById('container');
-  const rect = container.getBoundingClientRect();
-  const DPR = window.devicePixelRatio || 1;
-  canvas.width = rect.width * DPR;
-  canvas.height = rect.height * DPR;
-  ctx.setTransform(1,0,0,1,0,0); // reset transform
-  ctx.scale(DPR, DPR);
-
-  // Store scale for drawing
-  window.gameScale = Math.min(rect.width / baseWidth, rect.height / baseHeight);
-  window.gameOffsetX = (rect.width - baseWidth * window.gameScale) / 2;
-  window.gameOffsetY = (rect.height - baseHeight * window.gameScale) / 2;
-}
-window.addEventListener('resize', resizeCanvas);
-window.addEventListener('orientationchange', resizeCanvas);
-resizeCanvas();
-
-// --- Scale all drawing ---
-function draw(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  // Use scale and offset for all drawing
-  ctx.save();
-  ctx.translate(window.gameOffsetX, window.gameOffsetY);
-  ctx.scale(window.gameScale, window.gameScale);
-
-  // background
-  const g=ctx.createLinearGradient(0,0,0,baseHeight);g.addColorStop(0,'#071018');g.addColorStop(1,'#041018');ctx.fillStyle=g;ctx.fillRect(0,0,baseWidth,baseHeight);
-  // hud
-  ctx.fillStyle='#cfe8df';ctx.font='20px ui-monospace,monospace';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText('Score: '+score,14,12);ctx.fillText('Wave: '+wave,14,36);
-
-  // health hearts (dots)
-  for(let i=0;i<maxHealth;i++){const cx=14+i*22,cy=66;ctx.beginPath();ctx.arc(cx,cy,7,0,Math.PI*2);ctx.fillStyle=(i<player.health)?'rgba(126,231,135,0.95)':'rgba(120,130,140,0.12)';ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.stroke();}
-  // player
-  if(player.popped){
-    const maxRadius = Math.min(450, player.r * player.popProgress);
-    ctx.fillStyle='rgba(126,231,135,0.08)';
-    ctx.beginPath();
-    ctx.arc(player.x,player.y,maxRadius,0,Math.PI*2);
-    ctx.fill();
-    if(player.popProgress > 2) {
-      const pulseRadius = maxRadius * (1 + 0.1 * Math.sin(Date.now() * 0.01));
-      ctx.fillStyle='rgba(126,231,135,0.03)';
-      ctx.beginPath();
-      ctx.arc(player.x,player.y,pulseRadius,0,Math.PI*2);
-      ctx.fill();
-    }
-  } else {
-    ctx.fillStyle='#7ee787';
-    ctx.beginPath();
-    ctx.arc(player.x,player.y,player.r,0,Math.PI*2);
-    ctx.fill();
-    ctx.strokeStyle='rgba(255,255,255,0.06)';
-    ctx.lineWidth=2;
-    ctx.stroke();
-  }
-
-  // enemies + words + underline positioned close under text
-  ctx.font='18px ui-monospace,monospace';
-  for(let e of enemies){
-    ctx.fillStyle=e.dead? 'rgba(255,107,107,0.45)' : '#ff6b6b';
-    ctx.beginPath();ctx.arc(e.x,e.y,e.r,0,Math.PI*2);ctx.fill();
-    const fontSize=18; ctx.font=fontSize+'px ui-monospace,monospace'; ctx.textBaseline='top';
-    const fullWidth=ctx.measureText(e.word).width; const textX=e.x - fullWidth/2; const textY=e.y - e.r - 30; 
-    ctx.fillStyle='#ffffff'; ctx.fillText(e.word, textX, textY);
-    if(e.progress>0){ const typed=e.word.slice(0,e.progress); ctx.fillStyle='#7ee787'; ctx.fillText(typed, textX, textY); 
-      const typedW=ctx.measureText(typed).width; const lineY=textY + fontSize + 4; ctx.strokeStyle='#7ee787'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(textX, lineY); ctx.lineTo(textX + typedW, lineY); ctx.stroke(); }
-  }
-
-  // bullets
-  for(let b of bullets){ ctx.strokeStyle=b.color; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(b.x - b.vx*1.5, b.y - b.vy*1.5); ctx.lineTo(b.x, b.y); ctx.stroke(); }
-  // particles
-  for(let p of particles){ ctx.fillStyle=p.color; ctx.globalAlpha=Math.max(0, p.life/30); ctx.fillRect(p.x,p.y,2,2); ctx.globalAlpha=1; }
-
-  ctx.restore();
-}
-
-// --- Mobile input logic ---
-function isMobileDevice() {
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-}
-
-// Show/hide mobile input box
-function showMobileInput() {
-  mobileInputBox.style.display = 'block';
-  mobileInputBox.value = '';
-  mobileInputBox.focus();
-}
-function hideMobileInput() {
-  mobileInputBox.style.display = 'none';
-  mobileInputBox.value = '';
-}
-
-// Use mobile input for typing gameplay
-function handleMobileInput(ev) {
-  if(!running) return;
-  const k = (ev.target.value || '').toLowerCase();
-  if(!/^[a-z]$/.test(k)) {
-    mobileInputBox.value = '';
-    return;
-  }
-  handleKey({key: k});
-  mobileInputBox.value = '';
-}
-
-// Show input box when game starts on mobile
-function startGameMobile() {
-  startGame();
-  if(isMobileDevice()) showMobileInput();
-}
-
-// Overlay click: start game and show input if mobile
-overlay.addEventListener('click',()=>{ 
-  if(overlay.style.display !== 'none') {
-    startGameMobile(); 
-  }
-});
-canvas.addEventListener('click',()=>{ 
-  canvas.focus(); 
-  if(!started) startGameMobile(); 
-  if(isMobileDevice()) showMobileInput();
-});
-
-// Keyboard input for desktop
-document.addEventListener('keydown',handleKey);
-
-// Mobile input events
-mobileInputBox.addEventListener('input', handleMobileInput);
-mobileInputBox.addEventListener('blur', () => {
-  // Re-show input if game is running
-  setTimeout(() => {
-    if(running && isMobileDevice()) showMobileInput();
-  }, 200);
-});
-
-// On mobile, show input when game starts
-window.addEventListener('DOMContentLoaded', () => {
-  setTimeout(() => {
-    if(isMobileDevice() && started) showMobileInput();
-  }, 1200);
-});
-
-// When game over, hide mobile input
-function gameOver(){
-  player.popped=true;
-  running=false;
-  player.popProgress=0.1;
-  sPop();
-  stopBGM();
-  overlay.style.display='flex';
-  overlay.textContent='Player Popped! Game Over — Score: '+score;
-  hideMobileInput();
-  setTimeout(()=>{
-    checkHighScore();
-    overlay.textContent='Click to start the game';
-    started = false;
-  },1500);
-}
 
 // Use in-memory storage
 let gameData = {
@@ -463,12 +146,12 @@ function createLofiTrack() {
     const bassGain = audioCtx.createGain();
     const bassFilter = audioCtx.createBiquadFilter();
     
-    bass.type = 'sine';
+    bass.type = 'sine'; // Softer than sawtooth
     bass.frequency.value = 110;
     bassFilter.type = 'lowpass';
     bassFilter.frequency.value = 200;
     bassFilter.Q.value = 1;
-    bassGain.gain.value = 0.15;
+    bassGain.gain.value = 0.15; // Reduced
     
     bass.connect(bassFilter);
     bassFilter.connect(bassGain);
@@ -479,16 +162,16 @@ function createLofiTrack() {
   };
   
   // Dreamy pad layers
-  const createPad = (freq, gain = 0.06) => {
+  const createPad = (freq, gain = 0.06) => { // Much softer
     const pad = audioCtx.createOscillator();
     const padGain = audioCtx.createGain();
     const padFilter = audioCtx.createBiquadFilter();
     
-    pad.type = 'triangle';
+    pad.type = 'triangle'; // Softer than sawtooth
     pad.frequency.value = freq;
     padFilter.type = 'lowpass';
-    padFilter.frequency.value = 600; 
-    padFilter.Q.value = 0.5; 
+    padFilter.frequency.value = 600; // More muffled
+    padFilter.Q.value = 0.5; // Less resonance
     padGain.gain.value = gain;
     
     pad.connect(padFilter);
@@ -510,7 +193,7 @@ function createLofiTrack() {
     leadFilter.type = 'lowpass';
     leadFilter.frequency.value = 1000;
     leadFilter.Q.value = 1;
-    leadGain.gain.value = 0.08; 
+    leadGain.gain.value = 0.08; // Very soft
     
     lead.connect(leadFilter);
     leadFilter.connect(leadGain);
@@ -531,7 +214,7 @@ function createLofiTrack() {
     ambFilter.type = 'lowpass';
     ambFilter.frequency.value = 300;
     ambFilter.Q.value = 2;
-    ambGain.gain.value = 0.03; 
+    ambGain.gain.value = 0.03; // Very subtle
     
     amb.connect(ambFilter);
     ambFilter.connect(ambGain);
@@ -549,7 +232,7 @@ function createLofiTrack() {
   const pad1 = createPad(220, 0.05);
   const pad2 = createPad(262, 0.04);
   const pad3 = createPad(330, 0.03);
-  const pad4 = createPad(175, 0.04); 
+  const pad4 = createPad(175, 0.04); // Additional pad layer
   const leadSynth = createLead();
   const ambient = createAmbient();
   
@@ -595,13 +278,13 @@ function createLofiTrack() {
     // Soft, gentle drum pattern
     if(beatPhase === 0 || beatPhase === 2) {
       // Soft kick
-      kickDrum.kickGain.gain.setValueAtTime(0.08, time);
+      kickDrum.kickGain.gain.setValueAtTime(0.08, time); // Very soft
       kickDrum.kickGain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
     }
     
     if(beatPhase === 1 || beatPhase === 3) {
       // Gentle snare/rim on 2 and 4
-      snareDrum.snareGain.gain.setValueAtTime(0.04, time);
+      snareDrum.snareGain.gain.setValueAtTime(0.04, time); // Very subtle
       snareDrum.snareGain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
     }
     
@@ -709,7 +392,7 @@ let particles=[];
 let nextId=1;
 let locked=null; // currently-locked enemy object (by reference)
 
-const WORDS=["dark","fire","storm","blade","void","shadow","night","light","rage","echo","quake","flare","nova","ember","frost","viper","onyx","soul","iron","stone","fear","glow","dust","wind","river","castle","thorn","summon","meteor","lunar","ghost","titan","prism","nexus","forge","magic","raven","comet","spark","chaos","dream","lunar","crystal","phoenix","dragon","thunder","mystic","armor","shield","demon","angel","wizard","knight","beast","flame","ocean","galaxy","planet","cosmic","spirit","energy","power","legend","hero","quest","battle","victory","ancient","sacred","eternal","divine","shadow","crimson","golden","silver","steel","copper","bronze","emerald","ruby","sapphire","diamond","crystal","marble","granite","obsidian","quartz","jade","amber","pearl","coral","ivory","ebony","cedar","willow","birch","maple","pine","oak","ash","elm","lotus","rose","lily","iris","tulip","daisy","orchid","violet","jasmine","lavender","mint","sage","thyme","basil","rosemary","cinnamon","vanilla","honey","pepper","ginger","lemon","orange","apple","grape","cherry","berry","melon","peach","plum","mango","papaya","coconut","almond","walnut","hazel","cedar","bamboo","cotton","silk","velvet","satin","canvas","leather","metal","glass","wood","paper","stone","clay","sand","snow","rain","mist","fog","dew","ice","fire","earth","water","wind","light","shadow","time","space","void","infinity","cosmos","universe","galaxy","nebula","quasar","pulsar","comet","asteroid","meteor","planet","moon","sun","star","constellation","eclipse","aurora","rainbow","prism","spectrum","frequency","wavelength","amplitude","resonance","harmony","melody","rhythm","tempo","beat","pulse","echo","reverb","distortion","filter","synthesis","analog","digital","binary","quantum","neural","matrix","vector","tensor","scalar","complex","fractal","chaos","entropy","symmetry","asymmetry","pattern","texture","gradient","opacity","transparency","luminance","saturation","contrast","brightness","darkness","twilight","dawn","dusk","midnight","noon","morning","evening","today","tomorrow","yesterday","future","past","present","moment","instant","second","minute","hour","day","week","month","year","decade","century","millennium","eternity","forever","always","never","sometimes","often","rarely","seldom","maybe","perhaps","definitely","certainly","possibly","probably","absolutely","relatively","completely","partially","entirely","totally","fully","barely","hardly","nearly","almost","quite","very","extremely","incredibly","amazingly","surprisingly","obviously","clearly","apparently","seemingly","actually","really","truly","genuinely","honestly","frankly","literally","figuratively","metaphorically","symbolically","practically","theoretically","hypothetically","potentially","eventually","immediately","instantly","suddenly","gradually","slowly","quickly","rapidly","swiftly","smoothly","roughly","gently","harshly","softly","loudly","quietly","silently","peacefully","violently","calmly","frantically","desperately","hopefully","carefully","carelessly","thoughtfully","mindlessly","consciously","unconsciously","deliberately","accidentally","intentionally","unintentionally","purposefully","aimlessly","directly","indirectly","specifically","generally","particularly","especially","notably","remarkably","significantly","substantially","considerably","moderately","slightly","barely","hardly","scarcely","merely","simply","purely","solely","exclusively","inclusively","collectively","individually","personally","professionally","officially","unofficially","formally","informally","publicly","privately","openly","secretly","honestly","dishonestly","fairly","unfairly","equally","unequally","similarly","differently","likewise","otherwise","however","nevertheless","nonetheless","furthermore","moreover","additionally","consequently","therefore","thus","hence","accordingly","meanwhile","subsequently","previously","formerly","currently","presently","recently","lately","soon","eventually","finally","ultimately","originally","initially","primarily","secondarily","mainly","mostly","largely","partly","partially","completely","entirely","totally","fully","absolutely","relatively","comparatively","proportionally","disproportionally","symmetrically","asymmetrically","systematically","randomly","chaotically","orderly","disorderly","organized","disorganized","structured","unstructured","planned","unplanned","expected","unexpected","predictable","unpredictable","certain","uncertain","definite","indefinite","specific","general","particular","universal","local","global","regional","national","international","cosmic","terrestrial","extraterrestrial","supernatural","natural","artificial","synthetic","organic","inorganic","living","nonliving","animate","inanimate","conscious","unconscious","aware","unaware","alert","sleepy","awake","asleep","active","inactive","dynamic","static","moving","stationary","mobile","immobile","flexible","rigid","soft","hard","smooth","rough","sharp","dull","bright","dim","colorful","colorless","vivid","pale","rich","poor","wealthy","broke","expensive","cheap","valuable","worthless","precious","common","rare","frequent","infrequent","regular","irregular","normal","abnormal","typical","atypical","standard","nonstandard","conventional","unconventional","traditional","modern","ancient","contemporary","classic","trendy","fashionable","outdated","timeless","temporary","permanent","lasting","fleeting","brief","lengthy","short","long","tall","small","large","huge","tiny","massive","miniature","gigantic","microscopic","enormous","minuscule","colossal","petite","grand","modest","humble","proud","arrogant","confident","insecure","brave","cowardly","bold","timid","strong","weak","powerful","powerless","mighty","feeble","robust","frail","healthy","sick","fit","unfit","athletic","sedentary","energetic","lethargic","vigorous","sluggish","lively","dull","vibrant","bland","exciting","boring","interesting","tedious","fascinating","mundane","captivating","repulsive","attractive","unattractive","beautiful","ugly","gorgeous","hideous","stunning","plain","elegant","clumsy","graceful","awkward","smooth","jerky","fluid","choppy","rhythmic","arrhythmic","harmonic","dissonant","melodic","cacophonous","pleasant","unpleasant","enjoyable","miserable","delightful","awful","wonderful","terrible","amazing","mediocre","excellent","poor","outstanding","average","exceptional","ordinary","extraordinary","remarkable","unremarkable","notable","forgettable","memorable","unmemorable","significant","insignificant","important","unimportant","crucial","trivial","essential","unnecessary","vital","optional","required","forbidden","allowed","permitted","prohibited","legal","illegal","legitimate","illegitimate","valid","invalid","correct","incorrect","right","wrong","true","false","accurate","inaccurate","precise","imprecise","exact","approximate","perfect","imperfect","flawless","flawed","ideal","realistic","practical","impractical","useful","useless","helpful","harmful","beneficial","detrimental","positive","negative","optimistic","pessimistic","hopeful","hopeless","cheerful","gloomy","happy","sad","joyful","sorrowful","elated","depressed","excited","bored","thrilled","disappointed","satisfied","dissatisfied","content","discontent","pleased","displeased","delighted","disgusted","amused","annoyed","entertained","irritated","relaxed","stressed","calm","agitated","peaceful","turbulent","serene","chaotic","tranquil","frantic","quiet","noisy","silent","loud","soft","hard","gentle","harsh","mild","severe","light","heavy","bright","dark","clear","cloudy","sunny","rainy","dry","wet","hot","cold","warm","cool","freezing","boiling","scorching","chilly","comfortable","uncomfortable","cozy","cramped","spacious","narrow","wide","broad","thin","thick","dense","sparse","crowded","empty","full","vacant","occupied","busy","idle","active","passive","aggressive","passive","dominant","submissive","leading","following","first","last","early","late","punctual","tardy","prompt","delayed","immediate","eventual","instant","gradual","sudden","slow","fast","quick","rapid","swift","sluggish","speedy","leisurely","hurried","rushed","relaxed","tense","loose","tight","free","bound","open","closed","public","private","shared","exclusive","common","unique","ordinary","special","regular","irregular","standard","custom","normal","abnormal","typical","unusual","expected","surprising","predictable","random","systematic","chaotic","organized","messy","neat","tidy","cluttered","clean","dirty","pure","polluted","fresh","stale","new","old","young","aged","recent","ancient","modern","vintage","contemporary","classic","traditional","innovative","conventional","radical","conservative","liberal","progressive","regressive","forward","backward","upward","downward","inward","outward","inside","outside","interior","exterior","internal","external","central","peripheral","core","surface","deep","shallow","profound","superficial","complex","simple","complicated","easy","difficult","hard","soft","tough","tender","rough","smooth","coarse","fine","crude","refined","raw","cooked","natural","artificial","genuine","fake","real","imaginary","actual","fictional","factual","mythical","legendary","historical","contemporary","future","past","present","current","former","previous","next","following","preceding","subsequent","prior","later","earlier","sooner","eventually","immediately","instantly","suddenly","gradually","slowly","quickly","rapidly","swiftly","smoothly","roughly","gently","harshly","softly","loudly"];
+const WORDS=["dark","fire","storm","blade","void","shadow","night","light","rage","echo","quake","flare","nova","ember","frost","viper","onyx","soul","iron","stone","fear","glow","dust","wind","river","castle","thorn","summon","meteor","lunar","ghost","titan","prism","nexus","forge","magic","raven","comet","spark","chaos","dream","lunar","crystal","phoenix","dragon","thunder","mystic","armor","shield","demon","angel","wizard","knight","beast","flame","ocean","galaxy","planet","cosmic","spirit","energy","power","legend","hero","quest","battle","victory","ancient","sacred","eternal","divine","shadow","crimson","golden","silver","steel","copper","bronze","emerald","ruby","sapphire","diamond","crystal","marble","granite","obsidian","quartz","jade","amber","pearl","coral","ivory","ebony","cedar","willow","birch","maple","pine","oak","ash","elm","lotus","rose","lily","iris","tulip","daisy","orchid","violet","jasmine","lavender","mint","sage","thyme","basil","rosemary","cinnamon","vanilla","honey","pepper","ginger","lemon","orange","apple","grape","cherry","berry","melon","peach","plum","mango","papaya","coconut","almond","walnut","hazel","cedar","bamboo","cotton","silk","velvet","satin","canvas","leather","metal","glass","wood","paper","stone","clay","sand","snow","rain","mist","fog","dew","ice","fire","earth","water","wind","light","shadow","time","space","void","infinity","cosmos","universe","galaxy","nebula","quasar","pulsar","comet","asteroid","meteor","planet","moon","sun","star","constellation","eclipse","aurora","rainbow","prism","spectrum","frequency","wavelength","amplitude","resonance","harmony","melody","rhythm","tempo","beat","pulse","echo","reverb","distortion","filter","synthesis","analog","digital","binary","quantum","neural","matrix","vector","tensor","scalar","complex","fractal","chaos","entropy","symmetry","asymmetry","pattern","texture","gradient","opacity","transparency","luminance","saturation","contrast","brightness","darkness","twilight","dawn","dusk","midnight","noon","morning","evening","today","tomorrow","yesterday","future","past","present","moment","instant","second","minute","hour","day","week","month","year","decade","century","millennium","eternity","forever","always","never","sometimes","often","rarely","seldom","maybe","perhaps","definitely","certainly","possibly","probably","absolutely","relatively","completely","partially","entirely","totally","fully","barely","hardly","nearly","almost","quite","very","extremely","incredibly","amazingly","surprisingly","obviously","clearly","apparently","seemingly","actually","really","truly","genuinely","honestly","frankly","literally","figuratively","metaphorically","symbolically","practically","theoretically","hypothetically","potentially","eventually","immediately","instantly","suddenly","gradually","slowly","quickly","rapidly","swiftly","smoothly","roughly","gently","harshly","softly","loudly","quietly","silently","peacefully","violently","calmly","frantically","desperately","hopefully","carefully","carelessly","thoughtfully","mindlessly","consciously","unconsciously","deliberately","accidentally","intentionally","unintentionally","purposefully","aimlessly","directly","indirectly","specifically","generally","particularly","especially","notably","remarkably","significantly","substantially","considerably","moderately","slightly","barely","hardly","scarcely","merely","simply","purely","solely","exclusively","inclusively","collectively","individually","personally","professionally","officially","unofficially","formally","informally","publicly","privately","openly","secretly","honestly","dishonestly","fairly","unfairly","equally","unequally","similarly","differently","likewise","otherwise","however","nevertheless","nonetheless","furthermore","moreover","additionally","consequently","therefore","thus","hence","accordingly","meanwhile","subsequently","previously","formerly","currently","presently","recently","lately","soon","eventually","finally","ultimately","originally","initially","primarily","secondarily","mainly","mostly","largely","partly","partially","completely","entirely","totally","fully","absolutely","relatively","comparatively","proportionally","disproportionally","symmetrically","asymmetrically","systematically","randomly","chaotically","orderly","disorderly","organized","disorganized","structured","unstructured","planned","unplanned","expected","unexpected","predictable","unpredictable","certain","uncertain","definite","indefinite","specific","general","particular","universal","local","global","regional","national","international","cosmic","terrestrial","extraterrestrial","supernatural","natural","artificial","synthetic","organic","inorganic","living","nonliving","animate","inanimate","conscious","unconscious","aware","unaware","alert","sleepy","awake","asleep","active","inactive","dynamic","static","moving","stationary","mobile","immobile","flexible","rigid","soft","hard","smooth","rough","sharp","dull","bright","dim","colorful","colorless","vivid","pale","rich","poor","wealthy","broke","expensive","cheap","valuable","worthless","precious","common","rare","frequent","infrequent","regular","irregular","normal","abnormal","typical","atypical","standard","nonstandard","conventional","unconventional","traditional","modern","ancient","contemporary","classic","trendy","fashionable","outdated","timeless","temporary","permanent","lasting","fleeting","brief","lengthy","short","long","tall","small","large","huge","tiny","massive","miniature","gigantic","microscopic","enormous","minuscule","colossal","petite","grand","modest","humble","proud","arrogant","confident","insecure","brave","cowardly","bold","timid","strong","weak","powerful","powerless","mighty","feeble","robust","frail","healthy","sick","fit","unfit","athletic","sedentary","energetic","lethargic","vigorous","sluggish","lively","dull","vibrant","bland","exciting","boring","interesting","tedious","fascinating","mundane","captivating","repulsive","attractive","unattractive","beautiful","ugly","gorgeous","hideous","stunning","plain","elegant","clumsy","graceful","awkward","smooth","jerky","fluid","choppy","rhythmic","arrhythmic","harmonic","dissonant","melodic","cacophonous","pleasant","unpleasant","enjoyable","miserable","delightful","awful","wonderful","terrible","amazing","mediocre","excellent","poor","outstanding","average","exceptional","ordinary","extraordinary","remarkable","unremarkable","notable","forgettable","memorable","unmemorable","significant","insignificant","important","unimportant","crucial","trivial","essential","unnecessary","vital","optional","required","forbidden","allowed","permitted","prohibited","legal","illegal","legitimate","illegitimate","valid","invalid","correct","incorrect","right","wrong","true","false","accurate","inaccurate","precise","imprecise","exact","approximate","perfect","imperfect","flawless","flawed","ideal","realistic","practical","impractical","useful","useless","helpful","harmful","beneficial","detrimental","positive","negative","optimistic","pessimistic","hopeful","hopeless","cheerful","gloomy","happy","sad","joyful","sorrowful","elated","depressed","excited","bored","thrilled","disappointed","satisfied","dissatisfied","content","discontent","pleased","displeased","delighted","disgusted","amused","annoyed","entertained","irritated","relaxed","stressed","calm","agitated","peaceful","turbulent","serene","chaotic","tranquil","frantic","quiet","noisy","silent","loud","soft","hard","gentle","harsh","mild","severe","light","heavy","bright","dark","clear","cloudy","sunny","rainy","dry","wet","hot","cold","warm","cool","freezing","boiling","scorching","chilly","comfortable","uncomfortable","cozy","cramped","spacious","narrow","wide","broad","thin","thick","dense","sparse","crowded","empty","full","vacant","occupied","busy","idle","active","passive","aggressive","passive","dominant","submissive","leading","following","first","last","early","late","punctual","tardy","prompt","delayed","immediate","eventual","instant","gradual","sudden","slow","fast","quick","rapid","swift","sluggish","speedy","leisurely","hurried","rushed","relaxed","tense","loose","tight","free","bound","open","closed","public","private","shared","exclusive","common","unique","ordinary","special","regular","irregular","standard","custom","normal","abnormal","typical","unusual","expected","surprising","predictable","random","systematic","chaotic","organized","messy","neat","tidy","cluttered","clean","dirty","pure","polluted","fresh","stale","new","old","young","aged","recent","ancient","modern","vintage","contemporary","classic","traditional","innovative","conventional","radical","conservative","liberal","progressive","regressive","forward","backward","upward","downward","inward","outward","inside","outside","interior","exterior","internal","external","central","peripheral","core","surface","deep","shallow","profound","superficial","complex","simple","complicated","easy","difficult","hard","soft","tough","tender","rough","smooth","coarse","fine","crude","refined","raw","cooked","natural","artificial","genuine","fake","real","imaginary","actual","fictional","factual","mythical","legendary","historical","contemporary","future","past","present","current","former","previous","next","following","preceding","subsequent","prior","later","earlier","sooner","eventually","immediately","instantly","suddenly","gradually","slowly","quickly","rapidly","swiftly","smoothly","roughly","gently","harshly","softly","loudly","quietly","silently"];
 function rand(a,b){return a+Math.random()*(b-a)}
 
 // Spawn waves (tries to avoid same starting letter together)
@@ -761,7 +444,7 @@ function resetGame(){
   wave=0;
   nextId=1;
   player.x=450;
-  player.y=540; // reverted to original position
+  player.y=540;
   player.r=28;
   player.health=maxHealth;
   player.popped=false;
@@ -786,7 +469,7 @@ function startGame(){
   wave=0;
   nextId=1;
   player.x=450;
-  player.y=540; // reverted to original position
+  player.y=540;
   player.r=28;
   player.health=maxHealth;
   player.popped=false;
@@ -978,71 +661,15 @@ function handleKey(ev){if(!running) return; const k=(ev.key||'').toLowerCase(); 
 
 function checkHighScore(){ 
   if(score>highScore){ 
-    // Show custom modal
-    const modal = document.getElementById('highScoreModal');
-    const input = document.getElementById('highScoreInput');
-    const submit = document.getElementById('highScoreSubmit');
-    modal.style.display = 'flex';
-    input.value = '';
-    input.focus();
-
-    function submitName() {
-      let name = input.value.trim();
-      if (!name) name = 'Unknown';
-      highScore = score; 
-      highPlayer = name; 
-      gameData.highScore = highScore; 
-      gameData.highPlayer = highPlayer; 
-      highScoreEl.textContent = highScore; 
-      highPlayerEl.textContent = highPlayer; 
-      modal.style.display = 'none';
-      // Remove listeners to avoid duplicates
-      submit.removeEventListener('click', submitName);
-      input.removeEventListener('keydown', keyHandler);
-    }
-    function keyHandler(e) {
-      if (e.key === 'Enter') submitName();
-    }
-    submit.addEventListener('click', submitName);
-    input.addEventListener('keydown', keyHandler);
+    const name=prompt('New High Score! Enter your name:',''); 
+    highScore=score; 
+    highPlayer=name||'Unknown'; 
+    gameData.highScore=highScore; 
+    gameData.highPlayer=highPlayer; 
+    highScoreEl.textContent=highScore; 
+    highPlayerEl.textContent=highPlayer; 
   }
 }
-
-// Title animation
-const typeTextEl = document.getElementById('typeText');
-const popTextEl = document.getElementById('popText');
-const typeString = "Type or ";
-const popString = "POP";
-let typeIndex = 0;
-
-function animateTitle() {
-  typeTextEl.textContent = "";
-  popTextEl.textContent = "";
-  popTextEl.style.animation = "";
-
-  // Typing animation
-  function typeNext() {
-    if (typeIndex < typeString.length) {
-      typeTextEl.textContent += typeString[typeIndex];
-      typeIndex++;
-      setTimeout(typeNext, 90);
-    } else {
-      // Wait before showing POP with pop animation
-      setTimeout(() => {
-        popTextEl.textContent = popString;
-        popTextEl.style.animation = "popEffect 0.7s cubic-bezier(.5,1.8,.5,1) 1";
-      }, 200); // 200ms delay after typing
-    }
-  }
-  typeIndex = 0;
-  typeNext();
-}
-
-// Run animation on load
-window.addEventListener('DOMContentLoaded', () => {
-  // Wait 1.2 seconds before starting the title animation
-  setTimeout(animateTitle, 900);
-});
 
 // Toggle button event listeners
 musicToggle.addEventListener('click', () => {
