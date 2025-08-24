@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Type or Pop Game</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+:root{--bg:#0b0f14;--panel:#071217;--muted:#9aa6b2;--accent:#7ee787;--danger:#ff6b6b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:#e6eef2;font-family:ui-monospace,Menlo,monospace;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh}
+h1 { margin: 0; padding: 0; }
+#topbar{width:900px;padding:12px 18px;display:flex;justify-content:flex-start;gap:12px;align-items:center;margin-bottom:8px}
+#topbar .label{font-size:16px;color:var(--muted)}
+#topbar .value{font-weight:700;margin-left:6px}
+#container{position:relative;width:900px;height:600px}
+canvas{width:100%;height:100%;display:block;border-radius:10px;background:linear-gradient(180deg,#081018,#06101a);box-shadow:0 6px 30px rgba(0,0,0,0.6);outline:none}
+#overlay{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(2,6,8,0.85);padding:18px 22px;border-radius:12px;font-size:18px;display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center;cursor:pointer}
+footer{margin-top:12px;color:var(--muted);font-size:13px}
+@keyframes popEffect {
+  0%   { transform: scale(1); color: #7ee787; }
+  30%  { transform: scale(1.5); color: #ff6b6b; }
+  60%  { transform: scale(0.8); color: #7ee787; }
+  100% { transform: scale(1); color: #7ee787; }
+}
+</style>
+</head>
+<body>
+<h1 id="gameTitle" style="font-family:inherit;font-size:2.6rem;font-weight:800;color:#7ee787;margin-bottom:2px;letter-spacing:2px;text-align:center;">
+  <span id="typeText"></span>
+  <span id="popText" style="display:inline-block;"></span>
+</h1>
+<div id="topbar">
+  <div><span class="label">High Score</span> <span class="value" id="highScore">0</span></div>
+  <div style="margin-left:8px"><span class="label">Player</span> <span class="value" id="highPlayer">None</span></div>
+  <div style="margin-left:auto;display:flex;gap:8px">
+    <button id="musicToggle" style="background:var(--accent);color:#000;border:none;padding:4px 8px;border-radius:4px;font-size:12px;cursor:pointer;font-family:inherit">🎵 ON</button>
+    <button id="soundToggle" style="background:var(--accent);color:#000;border:none;padding:4px 8px;border-radius:4px;font-size:12px;cursor:pointer;font-family:inherit">🔊 ON</button>
+  </div>
+</div>
+<div id="container">
+  <div id="overlay">Click to start the game</div>
+  <canvas id="c" width="900" height="600" tabindex="0"></canvas>
+</div>
+<footer>Type the word above each enemy to shoot it down. Wrong letter → enemy shoots back.</footer>
+<script>
+
+const canvas=document.getElementById('c');
+const ctx=canvas.getContext('2d');
+const overlay=document.getElementById('overlay');
+const highScoreEl=document.getElementById('highScore');
+const highPlayerEl=document.getElementById('highPlayer');
+
+// Use in-memory storage
+let gameData = {
+  highScore: 0,
+  highPlayer: 'None'
+};
+
+let highScore = gameData.highScore;
+let highPlayer = gameData.highPlayer;
+highScoreEl.textContent=highScore;highPlayerEl.textContent=highPlayer;
+
+// Audio helpers
+let audioCtx=null;
+let bgmNodes = [];
+let bgmRunning=false;
+let musicEnabled = true;
+let soundEnabled = true;
+
+const musicToggle = document.getElementById('musicToggle');
+const soundToggle = document.getElementById('soundToggle');
+
+function ensureAudio(){
+  if(!audioCtx){
+    try{
+      audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    }catch(e){
+      audioCtx=null;
+    }
+  }
+}
+
+function createLofiTrack() {
+  if(!audioCtx || !musicEnabled) return;
+  
+  // Master gain - much softer overall
+  const masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0.40; 
+  masterGain.connect(audioCtx.destination);
+  
+  // Create soft, dreamy instruments
+  
+  // Soft kick drum
+  const createKick = () => {
+    const kick = audioCtx.createOscillator();
+    const kickGain = audioCtx.createGain();
+    const kickFilter = audioCtx.createBiquadFilter();
+    
+    kick.type = 'sine';
+    kick.frequency.value = 55;
+    kickFilter.type = 'lowpass';
+    kickFilter.frequency.value = 80;
+    kickGain.gain.value = 0;
+    
+    kick.connect(kickFilter);
+    kickFilter.connect(kickGain);
+    kickGain.connect(masterGain);
+    kick.start();
+    
+    return { kick, kickGain };
+  };
+  
+  // Soft snare/rim shot
+  const createSnare = () => {
+    const snare = audioCtx.createOscillator();
+    const snareGain = audioCtx.createGain();
+    const snareFilter = audioCtx.createBiquadFilter();
+    
+    snare.type = 'square';
+    snare.frequency.value = 200;
+    snareFilter.type = 'bandpass';
+    snareFilter.frequency.value = 400;
+    snareFilter.Q.value = 2;
+    snareGain.gain.value = 0;
+    
+    snare.connect(snareFilter);
+    snareFilter.connect(snareGain);
+    snareGain.connect(masterGain);
+    snare.start();
+    
+    return { snare, snareGain };
+  };
+  
+  // Whisper-soft hi-hats
+  const createHiHat = () => {
+    const hihat = audioCtx.createOscillator();
+    const hihatGain = audioCtx.createGain();
+    const hihatFilter = audioCtx.createBiquadFilter();
+    
+    hihat.type = 'square';
+    hihat.frequency.value = 12000;
+    hihatFilter.type = 'highpass';
+    hihatFilter.frequency.value = 8000;
+    hihatGain.gain.value = 0;
+    
+    hihat.connect(hihatFilter);
+    hihatFilter.connect(hihatGain);
+    hihatGain.connect(masterGain);
+    hihat.start();
+    
+    return { hihat, hihatGain };
+  };
+  
+  // Warm, round bass
+  const createBass = () => {
+    const bass = audioCtx.createOscillator();
+    const bassGain = audioCtx.createGain();
+    const bassFilter = audioCtx.createBiquadFilter();
+    
+    bass.type = 'sine';
+    bass.frequency.value = 110;
+    bassFilter.type = 'lowpass';
+    bassFilter.frequency.value = 200;
+    bassFilter.Q.value = 1;
+    bassGain.gain.value = 0.15;
+    
+    bass.connect(bassFilter);
+    bassFilter.connect(bassGain);
+    bassGain.connect(masterGain);
+    bass.start();
+    
+    return { bass, bassGain, bassFilter };
+  };
+  
+  // Dreamy pad layers
+  const createPad = (freq, gain = 0.06) => {
+    const pad = audioCtx.createOscillator();
+    const padGain = audioCtx.createGain();
+    const padFilter = audioCtx.createBiquadFilter();
+    
+    pad.type = 'triangle';
+    pad.frequency.value = freq;
+    padFilter.type = 'lowpass';
+    padFilter.frequency.value = 600; 
+    padFilter.Q.value = 0.5; 
+    padGain.gain.value = gain;
+    
+    pad.connect(padFilter);
+    padFilter.connect(padGain);
+    padGain.connect(masterGain);
+    pad.start();
+    
+    return { pad, padGain, padFilter };
+  };
+  
+  // Gentle lead synth
+  const createLead = () => {
+    const lead = audioCtx.createOscillator();
+    const leadGain = audioCtx.createGain();
+    const leadFilter = audioCtx.createBiquadFilter();
+    
+    lead.type = 'triangle';
+    lead.frequency.value = 440;
+    leadFilter.type = 'lowpass';
+    leadFilter.frequency.value = 1000;
+    leadFilter.Q.value = 1;
+    leadGain.gain.value = 0.08; 
+    
+    lead.connect(leadFilter);
+    leadFilter.connect(leadGain);
+    leadGain.connect(masterGain);
+    lead.start();
+    
+    return { lead, leadGain, leadFilter };
+  };
+  
+  // Ambient texture layer
+  const createAmbient = () => {
+    const amb = audioCtx.createOscillator();
+    const ambGain = audioCtx.createGain();
+    const ambFilter = audioCtx.createBiquadFilter();
+    
+    amb.type = 'sawtooth';
+    amb.frequency.value = 880;
+    ambFilter.type = 'lowpass';
+    ambFilter.frequency.value = 300;
+    ambFilter.Q.value = 2;
+    ambGain.gain.value = 0.03; 
+    
+    amb.connect(ambFilter);
+    ambFilter.connect(ambGain);
+    ambGain.connect(masterGain);
+    amb.start();
+    
+    return { amb, ambGain, ambFilter };
+  };
+  
+  // Create all instruments
+  const kickDrum = createKick();
+  const snareDrum = createSnare();
+  const hiHat = createHiHat();
+  const bassLine = createBass();
+  const pad1 = createPad(220, 0.05);
+  const pad2 = createPad(262, 0.04);
+  const pad3 = createPad(330, 0.03);
+  const pad4 = createPad(175, 0.04); 
+  const leadSynth = createLead();
+  const ambient = createAmbient();
+  
+  bgmNodes = [
+    kickDrum.kick, snareDrum.snare, hiHat.hihat, bassLine.bass,
+    pad1.pad, pad2.pad, pad3.pad, pad4.pad, leadSynth.lead, ambient.amb
+  ];
+  
+  // Extended 30-second chord progression for variety
+  // Using more complex jazz-influenced progressions
+  const chordProgression = [
+    { bass: 110, chords: [220, 262, 330, 175] }, // Am
+    { bass: 87.3, chords: [175, 220, 262, 196] }, // F
+    { bass: 65.4, chords: [131, 165, 196, 220] }, // C
+    { bass: 98, chords: [196, 247, 294, 165] },   // G
+    { bass: 92.5, chords: [185, 233, 277, 208] }, // F#dim
+    { bass: 73.4, chords: [147, 185, 220, 165] }, // Dm
+    { bass: 82.4, chords: [165, 208, 247, 185] }, // E7
+    { bass: 110, chords: [220, 262, 330, 175] }   // Am (return)
+  ];
+  
+  // Longer melody patterns with more variation
+  const melodyPatterns = [
+    [440, 494, 523, 587, 659, 587, 523, 494], // Pattern 1
+    [523, 587, 659, 698, 784, 698, 659, 587], // Pattern 2
+    [330, 370, 415, 440, 494, 440, 415, 370], // Pattern 3 (lower)
+    [659, 698, 784, 831, 880, 831, 784, 698]  // Pattern 4 (higher)
+  ];
+  
+  let beatCount = 0;
+  let measureCount = 0;
+  const totalMeasures = 32; // 32 measures * 2 seconds = 64 beats for ~30 seconds
+  
+  const animate = () => {
+    if(!bgmRunning || !musicEnabled) return;
+    
+    const currentChord = chordProgression[Math.floor(measureCount / 4) % 8];
+    const currentPattern = melodyPatterns[Math.floor(measureCount / 8) % 4];
+    const time = audioCtx.currentTime;
+    const beatPhase = beatCount % 4;
+    const measurePhase = measureCount % 8;
+    
+    // Soft, gentle drum pattern
+    if(beatPhase === 0 || beatPhase === 2) {
+      // Soft kick
+      kickDrum.kickGain.gain.setValueAtTime(0.08, time);
+      kickDrum.kickGain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+    }
+    
+    if(beatPhase === 1 || beatPhase === 3) {
+      // Gentle snare/rim on 2 and 4
+      snareDrum.snareGain.gain.setValueAtTime(0.04, time);
+      snareDrum.snareGain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+    }
+    
+    // Whisper-soft hi-hats every beat
+    const hihatVol = 0.015 + (beatPhase === 1 || beatPhase === 3 ? 0.01 : 0);
+    hiHat.hihatGain.gain.setValueAtTime(hihatVol, time);
+    hiHat.hihatGain.gain.exponentialRampToValueAtTime(0.001, time + 0.08);
+    
+    // Smooth bass transitions
+    bassLine.bass.frequency.exponentialRampToValueAtTime(currentChord.bass, time + 0.1);
+    
+    // Gentle pad chord changes
+    pad1.pad.frequency.exponentialRampToValueAtTime(currentChord.chords[0], time + 0.2);
+    pad2.pad.frequency.exponentialRampToValueAtTime(currentChord.chords[1], time + 0.25);
+    pad3.pad.frequency.exponentialRampToValueAtTime(currentChord.chords[2], time + 0.3);
+    pad4.pad.frequency.exponentialRampToValueAtTime(currentChord.chords[3], time + 0.35);
+    
+    // Melody plays less frequently for subtlety
+    if(beatPhase === 0 && measureCount % 2 === 0) {
+      const melodyIndex = (Math.floor(measureCount / 2)) % currentPattern.length;
+      const noteFreq = currentPattern[melodyIndex];
+      leadSynth.lead.frequency.exponentialRampToValueAtTime(noteFreq, time + 0.05);
+      
+      // Very gentle melody fade
+      leadSynth.leadGain.gain.setValueAtTime(0.06, time);
+      leadSynth.leadGain.gain.exponentialRampToValueAtTime(0.02, time + 0.8);
+    }
+    
+    // Smooth filter movements for ambient texture
+    const filterFreq = 400 + 200 * Math.sin((measureCount * 0.5) * Math.PI / 8);
+    ambient.ambFilter.frequency.exponentialRampToValueAtTime(filterFreq, time + 0.5);
+    
+    // Subtle pad filter sweeps
+    const padFilterFreq = 600 + 150 * Math.sin((measureCount * 0.25) * Math.PI / 8);
+    pad1.padFilter.frequency.exponentialRampToValueAtTime(padFilterFreq, time + 0.3);
+    
+    // Progress counters
+    beatCount++;
+    if(beatCount % 4 === 0) {
+      measureCount++;
+      // Perfect loop after 32 measures
+      if(measureCount >= totalMeasures) {
+        measureCount = 0;
+        beatCount = 0;
+      }
+    }
+    
+    setTimeout(animate, 500); // 120 BPM
+  };
+  
+  // Start the music
+  animate();
+}
+
+function startBGM(){
+  ensureAudio();
+  if(!audioCtx || bgmRunning || !musicEnabled) return;
+  
+  bgmRunning = true;
+  createLofiTrack();
+}
+
+function stopBGM(){
+  bgmRunning = false;
+  if(bgmNodes.length > 0) {
+    bgmNodes.forEach(node => {
+      try { node.stop(); } catch(e) {}
+    });
+    bgmNodes = [];
+  }
+}
+
+function playTone(freq,dur,type='sine',vol=0.20){
+  if(!soundEnabled) return;
+  ensureAudio();
+  if(!audioCtx)return;
+  const o=audioCtx.createOscillator();
+  const g=audioCtx.createGain();
+  o.type=type;
+  o.frequency.value=freq;
+  o.connect(g);
+  g.connect(audioCtx.destination);
+  g.gain.setValueAtTime(vol,audioCtx.currentTime);
+  o.start();
+  g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);
+  o.stop(audioCtx.currentTime+dur);
+}
+
+function sCorrect(){playTone(1200,0.04,'triangle',0.14);}
+function sComplete(){playTone(1700,0.14,'sine',0.14);}
+function sWrong(){playTone(220,0.10,'sawtooth',0.10);}
+function sEnemy(){playTone(260,0.10,'square',0.13);}
+function sBullet(){playTone(800,0.05,'square',0.10);}
+function sPop(){playTone(360,0.18,'triangle',0.16);}
+
+// HiDPI
+const DPR=window.devicePixelRatio||1;canvas.width=900*DPR;canvas.height=600*DPR;ctx.scale(DPR,DPR);
+
+// Game state
+let raf=null,started=false,running=false,score=0,wave=0,maxHealth=10;
+let player={x:450,y:540,r:28,health:maxHealth,popped:false,popProgress:0};
+let enemies=[];
+let bullets=[]; // both player and enemy bullets
+let particles=[];
+let nextId=1;
+let locked=null; // currently-locked enemy object (by reference)
+
+const WORDS=["dark","fire","storm","blade","void","shadow","night","light","rage","echo","quake","flare","nova","ember","frost","viper","onyx","soul","iron","stone","fear","glow","dust","wind","river","castle","thorn","summon","meteor","lunar","ghost","titan","prism","nexus","forge","magic","raven","comet","spark","chaos","dream","lunar","crystal","phoenix","dragon","thunder","mystic","armor","shield","demon","angel","wizard","knight","beast","flame","ocean","galaxy","planet","cosmic","spirit","energy","power","legend","hero","quest","battle","victory","ancient","sacred","eternal","divine","shadow","crimson","golden","silver","steel","copper","bronze","emerald","ruby","sapphire","diamond","crystal","marble","granite","obsidian","quartz","jade","amber","pearl","coral","ivory","ebony","cedar","willow","birch","maple","pine","oak","ash","elm","lotus","rose","lily","iris","tulip","daisy","orchid","violet","jasmine","lavender","mint","sage","thyme","basil","rosemary","cinnamon","vanilla","honey","pepper","ginger","lemon","orange","apple","grape","cherry","berry","melon","peach","plum","mango","papaya","coconut","almond","walnut","hazel","cedar","bamboo","cotton","silk","velvet","satin","canvas","leather","metal","glass","wood","paper","stone","clay","sand","snow","rain","mist","fog","dew","ice","fire","earth","water","wind","light","shadow","time","space","void","infinity","cosmos","universe","galaxy","nebula","quasar","pulsar","comet","asteroid","meteor","planet","moon","sun","star","constellation","eclipse","aurora","rainbow","prism","spectrum","frequency","wavelength","amplitude","resonance","harmony","melody","rhythm","tempo","beat","pulse","echo","reverb","distortion","filter","synthesis","analog","digital","binary","quantum","neural","matrix","vector","tensor","scalar","complex","fractal","chaos","entropy","symmetry","asymmetry","pattern","texture","gradient","opacity","transparency","luminance","saturation","contrast","brightness","darkness","twilight","dawn","dusk","midnight","noon","morning","evening","today","tomorrow","yesterday","future","past","present","moment","instant","second","minute","hour","day","week","month","year","decade","century","millennium","eternity","forever","always","never","sometimes","often","rarely","seldom","maybe","perhaps","definitely","certainly","possibly","probably","absolutely","relatively","completely","partially","entirely","totally","fully","barely","hardly","nearly","almost","quite","very","extremely","incredibly","amazingly","surprisingly","obviously","clearly","apparently","seemingly","actually","really","truly","genuinely","honestly","frankly","literally","figuratively","metaphorically","symbolically","practically","theoretically","hypothetically","potentially","eventually","immediately","instantly","suddenly","gradually","slowly","quickly","rapidly","swiftly","smoothly","roughly","gently","harshly","softly","loudly","quietly","silently","peacefully","violently","calmly","frantically","desperately","hopefully","carefully","carelessly","thoughtfully","mindlessly","consciously","unconsciously","deliberately","accidentally","intentionally","unintentionally","purposefully","aimlessly","directly","indirectly","specifically","generally","particularly","especially","notably","remarkably","significantly","substantially","considerably","moderately","slightly","barely","hardly","scarcely","merely","simply","purely","solely","exclusively","inclusively","collectively","individually","personally","professionally","officially","unofficially","formally","informally","publicly","privately","openly","secretly","honestly","dishonestly","fairly","unfairly","equally","unequally","similarly","differently","likewise","otherwise","however","nevertheless","nonetheless","furthermore","moreover","additionally","consequently","therefore","thus","hence","accordingly","meanwhile","subsequently","previously","formerly","currently","presently","recently","lately","soon","eventually","finally","ultimately","originally","initially","primarily","secondarily","mainly","mostly","largely","partly","partially","completely","entirely","totally","fully","absolutely","relatively","comparatively","proportionally","disproportionally","symmetrically","asymmetrically","systematically","randomly","chaotically","orderly","disorderly","organized","disorganized","structured","unstructured","planned","unplanned","expected","unexpected","predictable","unpredictable","certain","uncertain","definite","indefinite","specific","general","particular","universal","local","global","regional","national","international","cosmic","terrestrial","extraterrestrial","supernatural","natural","artificial","synthetic","organic","inorganic","living","nonliving","animate","inanimate","conscious","unconscious","aware","unaware","alert","sleepy","awake","asleep","active","inactive","dynamic","static","moving","stationary","mobile","immobile","flexible","rigid","soft","hard","smooth","rough","sharp","dull","bright","dim","colorful","colorless","vivid","pale","rich","poor","wealthy","broke","expensive","cheap","valuable","worthless","precious","common","rare","frequent","infrequent","regular","irregular","normal","abnormal","typical","atypical","standard","nonstandard","conventional","unconventional","traditional","modern","ancient","contemporary","classic","trendy","fashionable","outdated","timeless","temporary","permanent","lasting","fleeting","brief","lengthy","short","long","tall","small","large","huge","tiny","massive","miniature","gigantic","microscopic","enormous","minuscule","colossal","petite","grand","modest","humble","proud","arrogant","confident","insecure","brave","cowardly","bold","timid","strong","weak","powerful","powerless","mighty","feeble","robust","frail","healthy","sick","fit","unfit","athletic","sedentary","energetic","lethargic","vigorous","sluggish","lively","dull","vibrant","bland","exciting","boring","interesting","tedious","fascinating","mundane","captivating","repulsive","attractive","unattractive","beautiful","ugly","gorgeous","hideous","stunning","plain","elegant","clumsy","graceful","awkward","smooth","jerky","fluid","choppy","rhythmic","arrhythmic","harmonic","dissonant","melodic","cacophonous","pleasant","unpleasant","enjoyable","miserable","delightful","awful","wonderful","terrible","amazing","mediocre","excellent","poor","outstanding","average","exceptional","ordinary","extraordinary","remarkable","unremarkable","notable","forgettable","memorable","unmemorable","significant","insignificant","important","unimportant","crucial","trivial","essential","unnecessary","vital","optional","required","forbidden","allowed","permitted","prohibited","legal","illegal","legitimate","illegitimate","valid","invalid","correct","incorrect","right","wrong","true","false","accurate","inaccurate","precise","imprecise","exact","approximate","perfect","imperfect","flawless","flawed","ideal","realistic","practical","impractical","useful","useless","helpful","harmful","beneficial","detrimental","positive","negative","optimistic","pessimistic","hopeful","hopeless","cheerful","gloomy","happy","sad","joyful","sorrowful","elated","depressed","excited","bored","thrilled","disappointed","satisfied","dissatisfied","content","discontent","pleased","displeased","delighted","disgusted","amused","annoyed","entertained","irritated","relaxed","stressed","calm","agitated","peaceful","turbulent","serene","chaotic","tranquil","frantic","quiet","noisy","silent","loud","soft","hard","gentle","harsh","mild","severe","light","heavy","bright","dark","clear","cloudy","sunny","rainy","dry","wet","hot","cold","warm","cool","freezing","boiling","scorching","chilly","comfortable","uncomfortable","cozy","cramped","spacious","narrow","wide","broad","thin","thick","dense","sparse","crowded","empty","full","vacant","occupied","busy","idle","active","passive","aggressive","passive","dominant","submissive","leading","following","first","last","early","late","punctual","tardy","prompt","delayed","immediate","eventual","instant","gradual","sudden","slow","fast","quick","rapid","swift","sluggish","speedy","leisurely","hurried","rushed","relaxed","tense","loose","tight","free","bound","open","closed","public","private","shared","exclusive","common","unique","ordinary","special","regular","irregular","standard","custom","normal","abnormal","typical","unusual","expected","surprising","predictable","random","systematic","chaotic","organized","messy","neat","tidy","cluttered","clean","dirty","pure","polluted","fresh","stale","new","old","young","aged","recent","ancient","modern","vintage","contemporary","classic","traditional","innovative","conventional","radical","conservative","liberal","progressive","regressive","forward","backward","upward","downward","inward","outward","inside","outside","interior","exterior","internal","external","central","peripheral","core","surface","deep","shallow","profound","superficial","complex","simple","complicated","easy","difficult","hard","soft","tough","tender","rough","smooth","coarse","fine","crude","refined","raw","cooked","natural","artificial","genuine","fake","real","imaginary","actual","fictional","factual","mythical","legendary","historical","contemporary","future","past","present","current","former","previous","next","following","preceding","subsequent","prior","later","earlier","sooner","eventually","immediately","instantly","suddenly","gradually","slowly","quickly","rapidly","swiftly","smoothly","roughly","gently","harshly","softly","loudly","quietly","silently"];
+function rand(a,b){return a+Math.random()*(b-a)}
+
+// Spawn waves (tries to avoid same starting letter together)
+function spawnWave(){
+  wave++;
+  // More gradual enemy count increase
+  const count=Math.min(6,2+Math.floor(wave*0.4));
+  const used=new Set();
+  const margin=80;
+  const seg=(900-margin*2)/count;
+  
+  for(let i=0;i<count;i++){
+    let attempts=0,w;
+    do{
+      w=WORDS[Math.floor(Math.random()*WORDS.length)];
+      attempts++;
+    }while(used.has(w[0])&&attempts<200);
+    used.add(w[0]);
+    
+    const xBase=margin+seg*i;
+    const x=xBase+rand(-seg*0.18,seg*0.18);
+    const y=-rand(40,120);
+    
+    // Much slower initial speed with gradual increase
+    const baseSpeed = 0.25; 
+    const speedIncrease = wave * 0.03; 
+    const speed = baseSpeed + speedIncrease;
+    
+    enemies.push({
+      id:nextId++,
+      word:w,
+      progress:0,
+      x,y,
+      speed,
+      r:20,
+      dead:false
+    });
+  }
+  
+  if(player.health<maxHealth) player.health=Math.min(maxHealth,player.health+1);
+}
+
+function resetGame(){
+  if(raf)cancelAnimationFrame(raf);
+  raf=null;
+  started=false;
+  running=false;
+  score=0;
+  wave=0;
+  nextId=1;
+  player.x=450;
+  player.y=540;
+  player.r=28;
+  player.health=maxHealth;
+  player.popped=false;
+  player.popProgress=0;
+  enemies.length=0;
+  bullets.length=0;
+  particles.length=0;
+  locked=null;
+  overlay.style.display='flex';
+  overlay.textContent='Click to start the game';
+  
+  // Start the animation loop for initial screen
+  if(!raf) {
+    raf = requestAnimationFrame(loop);
+  }
+}
+
+function startGame(){
+  if(started)return;
+  // Reset game state when actually starting
+  score=0;
+  wave=0;
+  nextId=1;
+  player.x=450;
+  player.y=540;
+  player.r=28;
+  player.health=maxHealth;
+  player.popped=false;
+  player.popProgress=0;
+  enemies.length=0;
+  bullets.length=0;
+  particles.length=0;
+  locked=null;
+  started=true;
+  running=true;
+  overlay.style.display='none';
+  spawnWave();
+  if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();
+  
+  // Start background music
+  startBGM();
+  
+  canvas.focus();
+  raf=requestAnimationFrame(loop);
+} 
+function loop(){
+  raf=requestAnimationFrame(loop);
+  
+  if(running) {
+    update();
+  }
+  
+  draw();
+  
+  // Continue animation even when not running (for popping effect)
+  if(!running && player.popped && player.popProgress < 15) {
+    player.popProgress += 0.03; // Slower growth when game is over
+  }
+}
+
+// Create bullet. from='player'|'enemy'. targetId optional (for player bullets)
+function createBullet(sx,sy,tx,ty,color,from='player',targetId=null){const dx=tx-sx,dy=ty-sy,d=Math.hypot(dx,dy)||1;const speed=(from==='player')?12:7;bullets.push({x:sx,y:sy,vx:(dx/d)*speed,vy:(dy/d)*speed,life:300,color,from,targetId,speed});if(from==='player')sBullet();else sEnemy();}
+
+function createParticles(x,y,count=14,clr='#7ee787'){for(let i=0;i<count;i++){particles.push({x,y,vx:rand(-2.5,2.5),vy:rand(-2.5,2.5),life:18+Math.random()*18,color:clr});}}
+
+function getClosestEnemy(){if(enemies.length===0)return null;let best=enemies[0],bd=Infinity;for(let e of enemies){let dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy);if(d<bd){bd=d;best=e;}}return best;}
+
+function gameOver(){
+  player.popped=true;
+  running=false;
+  player.popProgress=0.1; // Start small and grow
+  sPop();
+  
+  // Stop background music
+  stopBGM();
+  
+  overlay.style.display='flex';
+  overlay.textContent='Player Popped! Game Over — Score: '+score;
+  setTimeout(()=>{
+    checkHighScore();
+    overlay.textContent='Click to start the game';
+    // Keep the animation loop running so restart works
+    started = false; // Allow restarting
+  },1500);
+}
+
+function update(){if(!running)return;
+ // enemies move toward player
+ for(let e of enemies){const dx=player.x-e.x,dy=player.y-e.y,d=Math.hypot(dx,dy)||1;const vx=(dx/d)*e.speed,vy=(dy/d)*e.speed;e.x+=vx;e.y+=vy; // collision with player -> game over
+ if(!player.popped && d < e.r + player.r - 6){gameOver();return;}}
+
+ // update bullets
+ for(let i=bullets.length-1;i>=0;i--){const b=bullets[i];
+   // homing adjustment if target exists
+   if(b.from==='player' && b.targetId!=null){const tgt=enemies.find(x=>x.id===b.targetId);if(!tgt){bullets.splice(i,1);continue;}const dx=tgt.x-b.x,dy=tgt.y-b.y,d=Math.hypot(dx,dy)||1;const speed=b.speed;b.vx=(dx/d)*speed;b.vy=(dy/d)*speed;}
+   if(b.from==='enemy'){const dx=player.x-b.x,dy=player.y-b.y,d=Math.hypot(dx,dy)||1;const speed=b.speed;b.vx=(dx/d)*speed;b.vy=(dy/d)*speed;}
+   b.x+=b.vx;b.y+=b.vy;b.life--;
+   // collisions
+   if(b.from==='player'){
+     const tgt=enemies.find(x=>x.id===b.targetId);
+     if(tgt){const dx=tgt.x-b.x,dy=tgt.y-b.y,d=Math.hypot(dx,dy)||1; if(d < tgt.r){ // hit
+         sCorrect(); createParticles(b.x,b.y,10,'#e6eef2');
+         // if word was completed earlier, remove now
+         if(tgt.dead){ // kill and score
+           score+=10; createParticles(tgt.x,tgt.y,20,'#7ee787'); enemies=enemies.filter(x=>x.id!==tgt.id);
+         }
+         bullets.splice(i,1); continue;}
+     } else { // target vanished
+       bullets.splice(i,1); continue; }
+   } else { // enemy bullet
+     const dx=player.x-b.x,dy=player.y-b.y,d=Math.hypot(dx,dy)||1; if(d < player.r){ // player hit
+       sWrong(); createParticles(b.x,b.y,12,'#ff8b8b'); player.health=Math.max(0,player.health-1); bullets.splice(i,1);
+       if(player.health<=0 && !player.popped){gameOver();}
+       continue; }
+   }
+   if(b.life<=0)bullets.splice(i,1);
+ }
+
+ // particles
+ for(let i=particles.length-1;i>=0;i--){let p=particles[i];p.x+=p.vx;p.y+=p.vy;p.life-=1;p.vx*=0.98;p.vy*=0.98;if(p.life<=0)particles.splice(i,1);} 
+
+ // next wave
+ if(running && enemies.length===0) spawnWave();}
+
+function draw(){ctx.clearRect(0,0,900,600);
+ // background
+ const g=ctx.createLinearGradient(0,0,0,600);g.addColorStop(0,'#071018');g.addColorStop(1,'#041018');ctx.fillStyle=g;ctx.fillRect(0,0,900,600);
+ // hud
+ ctx.fillStyle='#cfe8df';ctx.font='20px ui-monospace,monospace';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText('Score: '+score,14,12);ctx.fillText('Wave: '+wave,14,36);
+
+ // health hearts (dots)
+ for(let i=0;i<maxHealth;i++){const cx=14+i*22,cy=66;ctx.beginPath();ctx.arc(cx,cy,7,0,Math.PI*2);ctx.fillStyle=(i<player.health)?'rgba(126,231,135,0.95)':'rgba(120,130,140,0.12)';ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.stroke();}
+ // player
+ if(player.popped){
+   // Make the pop animation more dramatic and continue growing
+   const maxRadius = Math.min(450, player.r * player.popProgress);
+   ctx.fillStyle='rgba(126,231,135,0.08)';
+   ctx.beginPath();
+   ctx.arc(player.x,player.y,maxRadius,0,Math.PI*2);
+   ctx.fill();
+   
+   // Add a subtle pulse effect
+   if(player.popProgress > 2) {
+     const pulseRadius = maxRadius * (1 + 0.1 * Math.sin(Date.now() * 0.01));
+     ctx.fillStyle='rgba(126,231,135,0.03)';
+     ctx.beginPath();
+     ctx.arc(player.x,player.y,pulseRadius,0,Math.PI*2);
+     ctx.fill();
+   }
+ } else {
+   ctx.fillStyle='#7ee787';
+   ctx.beginPath();
+   ctx.arc(player.x,player.y,player.r,0,Math.PI*2);
+   ctx.fill();
+   ctx.strokeStyle='rgba(255,255,255,0.06)';
+   ctx.lineWidth=2;
+   ctx.stroke();
+ }
+
+ // enemies + words + underline positioned close under text
+ ctx.font='18px ui-monospace,monospace';
+ for(let e of enemies){
+   // circle
+   ctx.fillStyle=e.dead? 'rgba(255,107,107,0.45)' : '#ff6b6b';
+   ctx.beginPath();ctx.arc(e.x,e.y,e.r,0,Math.PI*2);ctx.fill();
+   // word (draw full in white, then typed portion in accent)
+   const fontSize=18; ctx.font=fontSize+'px ui-monospace,monospace'; ctx.textBaseline='top';
+   const fullWidth=ctx.measureText(e.word).width; const textX=e.x - fullWidth/2; const textY=e.y - e.r - 30; 
+   ctx.fillStyle='#ffffff'; ctx.fillText(e.word, textX, textY);
+  
+   // Display speed above the word
+   /*
+   const speedText = 'Speed: ' + e.speed.toFixed(2);
+   ctx.font='14px ui-monospace,monospace';
+   ctx.fillStyle='#9aa6b2';
+   const speedWidth = ctx.measureText(speedText).width;
+   ctx.fillText(speedText, e.x - speedWidth/2, textY - 22);
+   ctx.font=fontSize+'px ui-monospace,monospace'; // restore font
+  */
+
+   if(e.progress>0){ const typed=e.word.slice(0,e.progress); ctx.fillStyle='#7ee787'; ctx.fillText(typed, textX, textY); 
+     // underline for typed portion
+     const typedW=ctx.measureText(typed).width; const lineY=textY + fontSize + 4; ctx.strokeStyle='#7ee787'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(textX, lineY); ctx.lineTo(textX + typedW, lineY); ctx.stroke(); }
+ }
+
+ // bullets
+ for(let b of bullets){ ctx.strokeStyle=b.color; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(b.x - b.vx*1.5, b.y - b.vy*1.5); ctx.lineTo(b.x, b.y); ctx.stroke(); }
+ // particles
+ for(let p of particles){ ctx.fillStyle=p.color; ctx.globalAlpha=Math.max(0, p.life/30); ctx.fillRect(p.x,p.y,2,2); ctx.globalAlpha=1; }
+}
+
+// typing input logic
+function handleKey(ev){if(!running) return; const k=(ev.key||'').toLowerCase(); if(!/^[a-z]$/.test(k)) return;
+ // if not locked, try lock the enemy whose word starts with this letter (prefer nearest)
+ if(!locked){
+   // prefer closest enemy that startsWith letter
+   let candidates=enemies.filter(e=>e.word[0]===k);
+   if(candidates.length>1) candidates.sort((a,b)=>Math.hypot(a.x-player.x,a.y-player.y)-Math.hypot(b.x-player.x,b.y-player.y));
+   if(candidates.length>0){ locked=candidates[0]; locked.progress=0; }
+ }
+ if(!locked){ // no valid word - enemy shoots back visually
+   const shooter=getClosestEnemy(); if(shooter){ createBullet(shooter.x,shooter.y,player.x,player.y,'#ff8b8b','enemy',null);} sEnemy(); return; }
+ // have a locked enemy
+ if(k === locked.word[locked.progress]){ // correct letter
+   locked.progress++; sCorrect(); // visual bullet from player
+   createBullet(player.x,player.y,locked.x,locked.y,'#fff27f','player',locked.id);
+   if(locked.progress >= locked.word.length){ // mark dead, removal will happen when one of the player's bullets reaches it
+     locked.dead = true; sComplete(); // allow typing another word immediately
+     locked = null;
+   }
+ } else { // wrong letter -> locked enemy shoots back
+   sWrong(); createBullet(locked.x,locked.y,player.x,player.y,'#ff8b8b','enemy',null); locked.progress = 0; locked = null; }
+}
+
+function checkHighScore(){ 
+  if(score>highScore){ 
+    const name=prompt('New High Score! Enter your name:',''); 
+    highScore=score; 
+    highPlayer=name||'Unknown'; 
+    gameData.highScore=highScore; 
+    gameData.highPlayer=highPlayer; 
+    highScoreEl.textContent=highScore; 
+    highPlayerEl.textContent=highPlayer; 
+  }
+}
+
+// Title animation
+const typeTextEl = document.getElementById('typeText');
+const popTextEl = document.getElementById('popText');
+const typeString = "Type or ";
+const popString = "POP";
+let typeIndex = 0;
+
+function animateTitle() {
+  typeTextEl.textContent = "";
+  popTextEl.textContent = "";
+  popTextEl.style.animation = "";
+
+  // Typing animation
+  function typeNext() {
+    if (typeIndex < typeString.length) {
+      typeTextEl.textContent += typeString[typeIndex];
+      typeIndex++;
+      setTimeout(typeNext, 90);
+    } else {
+      // Wait before showing POP with pop animation
+      setTimeout(() => {
+        popTextEl.textContent = popString;
+        popTextEl.style.animation = "popEffect 0.7s cubic-bezier(.5,1.8,.5,1) 1";
+      }, 200); // 200ms delay after typing
+    }
+  }
+  typeIndex = 0;
+  typeNext();
+}
+
+// Run animation on load
+window.addEventListener('DOMContentLoaded', () => {
+  // Wait 1.2 seconds before starting the title animation
+  setTimeout(animateTitle, 900);
+});
+
+// Toggle button event listeners
+musicToggle.addEventListener('click', () => {
+  musicEnabled = !musicEnabled;
+  musicToggle.textContent = musicEnabled ? '🎵 ON' : '🎵 OFF';
+  musicToggle.style.background = musicEnabled ? 'var(--accent)' : 'var(--muted)';
+  
+  if(musicEnabled && running) {
+    startBGM();
+  } else {
+    stopBGM();
+  }
+});
+
+soundToggle.addEventListener('click', () => {
+  soundEnabled = !soundEnabled;
+  soundToggle.textContent = soundEnabled ? '🔊 ON' : '🔊 OFF';
+  soundToggle.style.background = soundEnabled ? 'var(--accent)' : 'var(--muted)';
+});
+
+// click overlay to start
+overlay.addEventListener('click',()=>{ 
+  if(overlay.style.display !== 'none') {
+    startGame(); 
+  }
+});
+// allow clicking canvas to focus + start if overlay hidden
+canvas.addEventListener('click',()=>{ canvas.focus(); if(!started) startGame(); });
+// keyboard
+document.addEventListener('keydown',handleKey);
+// init
+resetGame(); draw();
+</script>
+</body>
+</html>
